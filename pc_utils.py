@@ -319,29 +319,7 @@ class ChamferLoss(nn.Module):
         self.backprop_num = 0
 
         self.loss_anneal = args.sn_anneal
-        self.max_SN_loss_weight = args.max_SN_loss_weight
-        self.low_lambda_period = args.low_lambda_period
-        self.num_cycles = args.num_cycles
         self.max_epochs = args.num_epochs
-
-    def cosine_anneal(self):
-        """ hard cosine anneal thing """
-        if self.loss_anneal and self.current_epoch < self.max_epochs * 0.8 and self.current_epoch > self.max_epochs * 0.1:
-            finish_backprop = int(self.max_epochs * 0.8 * 0.9 / 10)
-            num_epoch_in_cyle = self.current_epoch % (int(self.max_epochs * 0.8) / self.num_cycles)
-            return min(self.max_SN_loss_weight,
-                       max(0.0, self.max_SN_loss_weight * (num_epoch_in_cyle - self.low_lambda_period) / (finish_backprop - self.low_lambda_period)))
-        else:
-            return 1
-
-    def thesis_anneal(self):
-        if self.current_epoch > self.max_epochs * 0.85:
-            return 1
-        elif self.current_epoch > self.max_epochs * 0.3:
-            num_epoch_in_cyle = self.current_epoch % (int(self.max_epochs * 0.8) / self.num_cycles)
-            return min(1, max(0.0, 1 * (num_epoch_in_cyle - 20) / 50))
-        else:
-            return 0
 
     def linear_decrease(self):
         return 1 - 0.99 * (self.current_epoch / self.max_epochs)

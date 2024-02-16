@@ -49,7 +49,7 @@ def tensorboard_save(writer, phase, epoch, epoch_loss_dict, std):
         if k == "total_loss":
             loss_stack = torch.Tensor(v)
             writer.add_scalar(f"foldingnet/{phase}_epoch", loss_stack.sum() / epoch_loss_dict['num_samples'], epoch)
-            writer.add_histogram(f"foldingnet/{phase}_hist_epoch", loss_stack.detach().cpu().numpy(), epoch)
+            # writer.add_histogram(f"foldingnet/{phase}_hist_epoch", loss_stack.detach().cpu().numpy(), epoch)  # dead dunno why
         elif k in ["num_samples", "iwae_k"]:
             continue
         elif "chamfer" in k:
@@ -65,7 +65,7 @@ def tensorboard_save(writer, phase, epoch, epoch_loss_dict, std):
 def train(data_loaders, model, optimizer, scheduler, device, args, preloaded_epoch=None):
     # loggging dir
     best_loss = np.inf
-    runs = "/netstorage/joye/runs" if args.cluster else "runs"
+    runs = "runs" # if save loc modification needed:
     args.current_commit = git.Repo(search_parent_directories=True).head.object.hexsha[:7]
     args.commit_text = git.Repo(search_parent_directories=True).head.reference.commit.message
     log_dir = Path(runs, args.current_commit,

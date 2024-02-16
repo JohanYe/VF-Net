@@ -3,10 +3,8 @@ import torch.distributions as td
 import torch.nn as nn
 import numpy as np
 
-from model.foldingnet.decoders import FoldNet_Decoder_stochman, Decoder_Linear, Decoder_Conv
-from model.foldingnet.encoders import FoldNet_Encoder_Linear, FoldNet_Encoder_Conv
-from model.pointnet import PointNetEncoder
-from model.pointnetpp import PointnetPP_encoder
+from model.decoders import FoldNet_Decoder_stochman, Decoder_Linear
+from model.encoders import FoldNet_Encoder_Linear
 from pc_utils import ChamferLoss
 
 
@@ -15,20 +13,9 @@ class ReconstructionNet(nn.Module):
         super(ReconstructionNet, self).__init__()
         self.input_dim = 6 if args.point_normals else 3
 
-        if args.encoder.lower() == 'foldnet':
-            self.encoder = FoldNet_Encoder_Linear(args)
-        elif args.encoder.lower() == "pointnet":
-            self.encoder = PointNetEncoder(global_feat=True, feature_transform=False, channel=3)
-        elif args.encoder.lower() == "pointnetpp":
-            self.encoder = PointnetPP_encoder(normal_channel=args.point_normals)
-        else:
-            raise ValueError(
-                f"Encoder: {args.encoder} not implemented. Available: ['foldnet', 'pointnet', 'pointnetpp'].")
+        self.encoder = FoldNet_Encoder_Linear(args)
+        self.decoder = Decoder_Linear(args, num_points)
 
-        if args.decoder.lower() == "stochman":
-            self.decoder = Decoder_Linear(args, num_points)
-        else:
-            raise ValueError(f"Decoder: {args.decoder} not implemented. Available: ['foldnet', 'stochman'].")
         self.loss = ChamferLoss(args)
 
     def forward(self, input, sample_grid=False, edge_only=False, jacobian=False):
@@ -83,17 +70,8 @@ class Variational_autoencoder(nn.Module):
     def __init__(self, args, num_points, global_std=8.18936):
         super(Variational_autoencoder, self).__init__()
         self.input_dim = 6 if args.point_normals else 3
-        if args.encoder.lower() == 'foldnet':
-            self.encoder = FoldNet_Encoder_Linear(args)
-        elif args.encoder.lower() == "pointnet":
-            self.encoder = PointNetEncoder(global_feat=True, feature_transform=False, channel=3)
-        elif args.encoder.lower() == "pointnetpp":
-            self.encoder = PointnetPP_encoder()
-
-        if args.decoder.lower() == "stochman":
-            self.decoder = Decoder_Linear(args, num_points)
-        else:
-            raise ValueError(f"Decoder: {args.decoder} not implemented. Available: ['foldnet', 'stochman'].")
+        self.encoder = FoldNet_Encoder_Linear(args)
+        self.decoder = Decoder_Linear(args, num_points)
         self.loss = ChamferLoss(args)
         self.max_epochs = args.num_epochs
         self.feat_dims = args.feat_dims

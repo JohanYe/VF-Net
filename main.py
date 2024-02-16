@@ -8,8 +8,7 @@ from torch.utils.data import DataLoader
 
 import dataloader
 import utils
-from model.foldingnet import foldingnet
-from model.pointtransformer2 import model as transformer
+from model import vfnet
 from train import train
 
 parser = argparse.ArgumentParser(description='Training loop boiler plate')
@@ -23,7 +22,7 @@ parser.add_argument("--shapenet_single_class", action="store_true", default=Fals
 parser.add_argument('--num_workers', required=False, type=int, default=0)
 parser.add_argument("--sn_anneal", action="store_true", default=False, help="If surface normal loss should be annealed")
 parser.add_argument("--cpu_only", action="store_true", default=False, help="force into cpu mode, used for debugging")
-parser.add_argument("--model", required=False, type=str, default="folding", help="model choice")
+parser.add_argument("--model", required=False, type=str, default="vae", help="model choice")
 parser.add_argument('--resume_from', required=False, default="", help='Path to state dict to continue training from')
 parser.add_argument("--encoder", required=False, type=str, default="foldnet", help="Foldingnet encoder")
 parser.add_argument("--decoder", required=False, type=str, default="stochman", help="stochman decoder")
@@ -92,12 +91,7 @@ if __name__ == "__main__":
         raise ValueError(f"Dataset not recognized: {args.dataset}. Available options: ['teeth', 'modelnet40', 'shapenetcorev2']")
 
     # model stuff
-    if args.model.lower() == "folding":
-        model = foldingnet.ReconstructionNet(args, num_points=train_set.k).to(device)
-    elif args.model.lower() == "transformer":
-        model = transformer.ReconstructionNet(args, num_points=train_set.k).to(device)
-    elif args.model.lower() == "vae":
-        model = foldingnet.Variational_autoencoder(args, num_points=train_set.k, global_std=train_set.global_pc_std).to(device)
+    model = vfnet.Variational_autoencoder(args, num_points=train_set.k, global_std=train_set.global_pc_std).to(device)
 
     # optimizer and scheduler
     optimizer = optim.Adamax(model.parameters(), args.lr, [args.beta1, args.beta2])

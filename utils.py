@@ -13,18 +13,12 @@ def add_standard_args_to_parser(parser):
     parser.add_argument('--k', type=int, default=None, metavar='N', help='Num of nearest neighbors to use for KNN')
     parser.add_argument('--feat_dims', type=int, default=512, metavar='N', help='Number of dims for feature ')
     parser.add_argument("--fold_orig_shape", required=False, type=str, default="plane")
-    parser.add_argument("--cluster", action="store_true", default=False, help="Changes saving to be on netstorage")
     parser.add_argument("--num_epochs", required=False, type=int, default=8000)
     parser.add_argument('--beta1', required=False, type=float, default=0.9)
     parser.add_argument('--beta2', required=False, type=float, default=0.999)
     parser.add_argument("--patience", required=False, type=int, default=50)
     parser.add_argument('--lr', required=False, type=float, default=0.001)
-    parser.add_argument('--batch_size', required=False, type=int, default=5)
-    parser.add_argument("--max_pc_n", required=False, default=5625, type=int,
-                        help="max number of points in a point cloud")
-    parser.add_argument("--max_SN_loss_weight", required=False, type=int, default=1)
-    parser.add_argument("--low_lambda_period", required=False, type=int, default=20)
-    parser.add_argument("--num_cycles", required=False, type=int, default=8)
+    parser.add_argument('--batch_size', required=False, type=int, default=64)
     return parser
 
 
