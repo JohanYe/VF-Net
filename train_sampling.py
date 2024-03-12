@@ -14,11 +14,11 @@ from tqdm import tqdm
 
 import dataloader
 import utils
-from model.foldingnet import foldingnet
+from model import vfnet
 import pc_utils
 from nflows import transforms, distributions, flows
 import torch.nn as nn
-from model.foldingnet.foldingnet_utils import Residual_Linear_Layer
+from model.model_utils import Residual_Linear_Layer
 import metrics
 
 
@@ -35,10 +35,10 @@ parser.add_argument('--scaling_std', action="store_true", required=False, defaul
 parser.add_argument('--flow_num_epochs', required=False, type=int, default=150)
 parser.add_argument('--num_workers', required=False, type=int, default=0)
 parser.add_argument('--pe_num_epochs', required=False, type=int, default=300)
-parser.add_argument('--seed', required=False, type=int, default=0)
+parser.add_argument('--seed', required=False, type=int, required=True)
 parser.add_argument('--flow_viz_epochs', required=False, type=int, default=20)
 parser.add_argument("--flow_n_layers", required=False, type=int, default=5)
-parser.add_argument("--one_fold", action="store_false", required=False, default=True)
+parser.add_argument("--one_fold", action="store_true", required=False, default=False)
 parser.add_argument("--test_name", required=False, type=str, default=None,
                     help="Name for test")
 
@@ -162,7 +162,7 @@ def get_latents(args, model_dir):
                            pin_memory=False, collate_fn=collate_fn, drop_last=True)}
 
     # model stuff
-    vae = foldingnet.Variational_autoencoder(args, num_points=train_set.k).to(args.device)
+    vae = vfnet.Variational_autoencoder(args, num_points=train_set.k).to(args.device)
     vae = utils.load_pretrained_model(vae, load_path=args.model_path)
     vae.eval()
 
@@ -316,7 +316,7 @@ def train_flow_prior(args, model_dir):
                            pin_memory=False, collate_fn=collate_fn, drop_last=True)
 
     # model stuff
-    vae = foldingnet.Variational_autoencoder(args, num_points=2048).to(args.device)
+    vae = vfnet.Variational_autoencoder(args, num_points=2048).to(args.device)
     vae = utils.load_pretrained_model(vae, load_path=args.model_path)
     vae.eval()
     for param in vae.parameters():
@@ -392,7 +392,7 @@ def train_flow_prior(args, model_dir):
             for i in range(10):
                 with torch.no_grad():
                     latent = sample[i].unsqueeze(0).repeat(1,grid.shape[1],1).to(args.device)
-                    output = vae.decoder.decode(latent, grid.float().to(args.device), jacobian=False)
+                    output = vae.decoder.decode(latent, grid.float().to(args.device))
                     point_cloud_normalized = output['reconstruction'][:, :, :] * 9.8186
                     pc_utils.save_ply_manual(point_cloud_normalized.transpose(1,2).detach().cpu().numpy()[:, :, :].squeeze(),
                                             os.path.join(flow_sample_epoch_dir, 
@@ -437,7 +437,7 @@ def train_point_encoding_predictor(args):
                            pin_memory=False, collate_fn=collate_fn, drop_last=True)}
 
     model_dir = os.path.dirname(args.model_path)
-    vae = foldingnet.Variational_autoencoder(args, num_points=train_set.k).to(args.device)
+    vae = vfnet.Variational_autoencoder(args, num_points=train_set.k).to(args.device)
     vae = utils.load_pretrained_model(vae, load_path=args.model_path)
     vae.eval()
 
@@ -545,7 +545,7 @@ def train_point_encoding_flow(args):
                            pin_memory=False, collate_fn=collate_fn, drop_last=True)}
 
     model_dir = os.path.dirname(args.model_path)
-    vae = foldingnet.Variational_autoencoder(args, num_points=train_set.k).to(args.device)
+    vae = vfnet.Variational_autoencoder(args, num_points=train_set.k).to(args.device)
     vae = utils.load_pretrained_model(vae, load_path=args.model_path)
     vae.eval()
 
@@ -663,7 +663,7 @@ def get_ref(path, args):
 def get_samples(args, num_samples, flow, pe):
     print("Generating samples..."   )
     # model stuff
-    vae = foldingnet.Variational_autoencoder(args, num_points=2048).to(args.device)
+    vae = vfnet.Variational_autoencoder(args, num_points=2048).to(args.device)
     vae = utils.load_pretrained_model(vae, load_path=args.model_path)
     vae.eval()
     unn_list = args.unn.split(",") if args.unn != "all" else "all"
@@ -681,44 +681,6 @@ def get_samples(args, num_samples, flow, pe):
             #                          os.path.join("./results", f"sample_{_}.ply"))
             all_samples.append(sample['reconstruction'])
     return torch.cat(all_samples, dim=0)*teeth_std
-
-def get_samples_diff(args, num_samples, pe):
-    from model.diffusion_prior import Unet1D, GaussianDiffusion1D, LinearUnet1d
-
-    model = Unet1D(dim=64, dim_mults=(2, 2, 4, 8), channels=1, self_condition=True).to(args.device)
-    # model = Unet1D(dim=64, dim_mults=(1, 2, 4, 8), channels=1).to(device)
-    # model = LinearUnet1d(dim=64, dim_mults=(1, 2, 4, 8), channels=1).to(args.device)
-    n_steps = 500
-    diffusion = GaussianDiffusion1D(model,
-                                    seq_length=512,
-                                    timesteps=n_steps,
-                                    auto_normalize=False).to(args.device)
-    model_dir = os.path.dirname(args.model_path)
-    state_dict = torch.load(os.path.join(model_dir, "diffusion.pth.tar"))
-    diffusion.load_state_dict(state_dict)
-
-    print("Generating samples..."   )
-    # model stuff
-    vae = foldingnet.Variational_autoencoder(args, num_points=2048).to(args.device)
-    vae = utils.load_pretrained_model(vae, load_path=args.model_path)
-    vae.eval()
-    unn_list = args.unn.split(",") if args.unn != "all" else "all"
-    teeth_std = 9.8186 if unn_list == ['3'] else 11.75121  
-    
-
-    all_samples = []
-    # for _ in tqdm(range(num_samples)):
-    batch_size = 32
-    while len(all_samples)*batch_size < num_samples:
-        with torch.no_grad():
-            z = diffusion.sample(batch_size)
-            point_encoding = pe(z, add_n_points=23)
-            z = z.repeat(1, point_encoding.shape[1], 1)
-            sample = vae.decoder.decode(z, point_encoding)
-            all_samples.append(sample['reconstruction'])
-            pc_utils.save_pointcloud(sample['reconstruction'].cpu()*teeth_std, "./size_test.ply")
-    x = torch.cat(all_samples, dim=0)*teeth_std
-    return x[:num_samples]
 
 if __name__ == "__main__":
     args = parser.parse_args()
@@ -781,51 +743,12 @@ if __name__ == "__main__":
         pe.load_state_dict(torch.load(os.path.join(model_dir, f"pe_{args.pe_model_string}.pth.tar")))
         print("Existing point encoding predictor loaded")
     
-    # all_ref = get_ref(args.x_test, args).transpose(1,2).to(args.device)
-    all_ref = torch.load("/netstorage/joye/paper_neurips_stuff/PVD/EUtest_ref2.pt").to(args.device).contiguous()
+    all_ref = get_ref(args.x_test, args).transpose(1,2).to(args.device)
     all_samples = get_samples(args, all_ref.shape[0], flow_prior, pe).transpose(1,2).to(args.device)
-    # all_samples = get_samples_diff(args, all_ref.shape[0], pe).transpose(1,2).to(args.device)
-
-    # results = torch.load("/nfshome/joye/PointCloudVAE.Training/runs/res_block_bottleneck_longer_2_backup/results.pt")
-
-
-    # trainset
-    # all_samples = get_ref(args.x_train, args).transpose(1,2).to(args.device)
-    # # choose N_all_ref random samples from all_samples
-    # N_all_ref = all_ref.shape[0]
-    # all_samples = all_samples[torch.randperm(all_samples.shape[0])[:N_all_ref]]
-
-    # all_samples = torch.load("/netstorage/joye/paper_neurips_stuff/PVD/EUtest_samples328.pt").to(args.device).contiguous()
-    # all_ref = torch.load("/netstorage/joye/paper_neurips_stuff/PVD/EUtest_ref2.pt").to(args.device).contiguous()
-    # all_samples = torch.load("/nfshome/joye/PVD/EUtest_dpc_samples4_newer_model.pt").to(args.device).contiguous()
-    # all_ref = torch.load("/nfshome/joye/PVD/EUtest_dpc_ref4_newer_model.pt").to(args.device).contiguous()
-    # all_samples = torch.load("/nfshome/joye/PVD/pottestset_samples.pt").to(args.device).contiguous()
-    # all_ref = torch.load("/nfshome/joye/PVD/pottestset_ref.pt").to(args.device).contiguous()
-
-    # all_ref = torch.load("/nfshome/joye/LION/fdi16_EU_test_gt_lion.pt").to(args.device).contiguous()
-    # path = "/netstorage/joye/paper_neurips_stuff/LION/fdi16_EU_test_gen_lion5.pt"
-    # all_samples = torch.load(path).to(args.device).contiguous()
-    # print(path)
-    # all_samples = all_samples[:all_ref.shape[0]]
-    # all_ref = torch.load("/nfshome/joye/LION/fdi16_pottestset_ref_pcs_lion.pt").to(args.device).contiguous()
-    # all_samples = torch.load("/nfshome/joye/LION/fdi16_pottestset_gen_pcs_lion.pt").to(args.device).contiguous()
-
-    # path = "/nfshome/joye/setvae_update/EUtest_dpc_samples5.pt"
-    # print(path)
-    # all_samples = torch.load(path).to(args.device).contiguous()
-    # all_ref = torch.load("/netstorage/joye/paper_neurips_stuff/setvae_update/EUtest_dpc_ref5_newer_model.pt").to(args.device).contiguous()
-    # all_samples = torch.load("/netstorage/joye/paper_neurips_stuff/setvae_update/EUtest_dpc_samples7_newer_model.pt").to(args.device).contiguous()
-    # all_ref = torch.load("/nfshome/joye/setvae_update/pottestset_dpc_ref.pt").to(args.device).contiguous()
-    # all_samples = torch.load("/nfshome/joye/setvae_update/pottestset_dpc_samples.pt").to(args.device).contiguous()
-
-    # all_ref = torch.load("/nfshome/joye/setvae_update/EUtest_setvae_ref3.pt").to(args.device).contiguous()
-    # all_samples = torch.load("/netstorage/joye/paper_neurips_stuff/setvae_update/EUtest_setvae_sample5.pt").to(args.device).contiguous()
-    # all_ref = torch.load("/nfshome/joye/setvae_update/pottestset_setvae_ref.pt").to(args.device).contiguous()
-    # all_samples = torch.load("/nfshome/joye/setvae_update/pottestset_setvae_sample.pt").to(args.device).contiguous()
 
     # for size sanity
-    pc_utils.save_pointcloud(all_ref[:1].cpu().numpy(), "./test_ref.ply")
-    pc_utils.save_pointcloud(all_samples[:1].cpu().numpy(), "./test.ply")
+    # pc_utils.save_pointcloud(all_ref[:1].cpu().numpy(), "./test_ref.ply")
+    # pc_utils.save_pointcloud(all_samples[:1].cpu().numpy(), "./test.ply")
 
     print(args.test_name)
     results = metrics.compute_all_metrics(all_samples, all_ref, batch_size=256, accelerated_cd=True)
@@ -836,9 +759,9 @@ if __name__ == "__main__":
         print(k, v*100)
     print("lol")
     
-    # results['args'] = vars(args)
+    results['args'] = vars(args)
     # # save results
-    # torch.save(results, os.path.join(model_dir, "results.pt"))
+    torch.save(results, os.path.join(model_dir, "results.pt"))
 
     # # go through dict and change tensors to list
     # for k, v in results.items():

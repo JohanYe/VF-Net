@@ -13,7 +13,7 @@ def add_standard_args_to_parser(parser):
     parser.add_argument('--k', type=int, default=None, metavar='N', help='Num of nearest neighbors to use for KNN')
     parser.add_argument('--feat_dims', type=int, default=512, metavar='N', help='Number of dims for feature ')
     parser.add_argument("--fold_orig_shape", required=False, type=str, default="plane")
-    parser.add_argument("--num_epochs", required=False, type=int, default=8000)
+    parser.add_argument("--num_epochs", required=False, type=int, default=15000)
     parser.add_argument('--beta1', required=False, type=float, default=0.9)
     parser.add_argument('--beta2', required=False, type=float, default=0.999)
     parser.add_argument("--patience", required=False, type=int, default=50)
