@@ -46,6 +46,7 @@ python ./main.py --x_train path_to_train_data --x_val path_to_val_data  --x_test
 ```
 
 ##Citation
+```
 @misc{ye2024variational,
       title={Variational Autoencoding of Dental Point Clouds}, 
       author={Johan Ziruo Ye and Thomas Ørkild and Peter Lempel Søndergaard and Søren Hauberg},
@@ -54,3 +55,4 @@ python ./main.py --x_train path_to_train_data --x_val path_to_val_data  --x_test
       archivePrefix={arXiv},
       primaryClass={cs.CV}
 }
+```
