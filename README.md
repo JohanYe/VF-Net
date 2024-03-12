@@ -45,7 +45,7 @@ Flow prior training can be run using:
 python ./main.py --x_train path_to_train_data --x_val path_to_val_data  --x_test path_to_test_data --test_name insert_test_name --seed insert_seed_num
 ```
 
-##Citation
+## Citation
 ```
 @misc{ye2024variational,
       title={Variational Autoencoding of Dental Point Clouds}, 
