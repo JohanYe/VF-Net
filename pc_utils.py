@@ -209,6 +209,18 @@ def angle_axis_to_rotation_matrix(angle_axis):
 
 
 def slight_rotation(point_cloud, point_normals=None):
+    """
+    Applies a slight rotation and tilt to a given point cloud.
+
+    Args:
+        point_cloud (torch.Tensor): The input point cloud with shape (N, 3), where N is the number of points.
+        point_normals (torch.Tensor, optional): The normals of the input point cloud with shape (N, 3). Defaults to None.
+
+    Returns:
+        tuple: A tuple containing the augmented point cloud and the augmented normals (if provided).
+            - point_cloud_aug_homo (torch.Tensor): The augmented point cloud with shape (N, 3).
+            - normals_aug (torch.Tensor): The augmented normals with shape (N, 3) if point_normals is not None, otherwise None.
+    """
     # Generate random z axis rotation
     init_2_aug = torch.eye(4)
     y_axis_theta = (torch.rand(1) * np.pi / 5 - np.pi / 10)
@@ -242,25 +254,6 @@ def slight_rotation(point_cloud, point_normals=None):
     else:
         return point_cloud_aug_homo, None
 
-def preprocessing(file):
-    """ scuffed preprocessing to speed up dataloading 100x """
-    with open(file, "rb+") as f:
-        text = f.read()
-        text = re.sub(b'property list uchar int vertex_indices',
-                      b"property int8 tri\nproperty int v1\nproperty int v2\nproperty int v3", text)
-        f.seek(0)
-        f.write(text)
-
-
-def undo_preprocessing(file):
-    """ reverses scuffed preprocessing """
-    with open(file, "rb+") as f:
-        text = f.read()
-        text = re.sub(b"property int8 tri\nproperty int v1\nproperty int v2\nproperty int v3",
-                      b'property list uchar int vertex_indices', text)
-        f.seek(0)
-        f.write(text)
-
 
 def calculate_point_cloud_std(folder, data_files):
     """ Calculate normalization values for new normalization"""
@@ -268,13 +261,6 @@ def calculate_point_cloud_std(folder, data_files):
 
     for idx, file in enumerate(tqdm(data_files)):
         ply_load = PlyData.read(file["ply_file"])
-
-        # convert to scuffed format for fast loading
-        if 'property list uchar int vertex_indices' in ply_load.header:
-            print("preprocessing files for faster loading")
-            for f in data_files:
-                preprocessing(os.path.join(folder, f))
-            ply_load = PlyData.read(os.path.join(folder, file))  # reload in new format
 
         point_cloud = np.array((ply_load.elements[0]['x'], ply_load.elements[0]['y'], ply_load.elements[0]['z']))
         point_dist.append(point_cloud.shape[1])
@@ -398,18 +384,6 @@ class ChamferLossSimple(nn.Module):
         return (loss_1 + loss_2) * 100
 
 
-def picture_of_pointcloud(pc):
-    from mayavi import mlab  # cluster dies if this is loaded, even unused
-    mlab.figure(fgcolor=(0., 0., 0.), bgcolor=(1, 1, 1))
-    f = mlab.gcf()
-    f.scene._lift()
-    mlab.points3d(pc[0, 0, :].detach().cpu(), pc[0, 1, :].detach().cpu(), pc[0, 2, :].detach().cpu(), mode="point",
-                  colormap="copper", scale_factor=250)
-    pic = mlab.screenshot(mode='rgb')
-    mlab.close()
-    return pic
-
-
 def save_pointcloud(point_cloud, save_path, point_normals=None):
     if point_cloud.shape[2] == 3:
         point_cloud = point_cloud.transpose((0, 2, 1))
@@ -470,32 +444,4 @@ def save_cloud_rgb(cloud, red, green, blue, filename):
     cloud_pd[['red', 'green', 'blue']] = cloud_pd[['red', 'green', 'blue']].astype(np.uint8) 
     cloud = PyntCloud(cloud_pd)
     cloud.to_file(filename)
-    
-def loss_std_correlation(pc_X, model_output):
-    std = model_output["std"].squeeze().mul(0.5).exp()
-    # std = model_output["std"].squeeze().exp()
-    # chamfer = ChamferLossSimple()
-    # P = chamfer.batch_pairwise_dist_new(pc_X.transpose(1,2), model_output["reconstruction"].transpose(1,2))
-    # mins, min_idx = torch.min(P, 1)  # from pred to gts
-    # loss_1 = torch.clamp(mins, min=1e-10)
-
-    # dim 1 norm of diff
-    diff = torch.norm(pc_X - model_output["reconstruction"], dim=1)
-    # correlation between std and loss
-    mean_loss = torch.mean(diff, dim=1, keepdim=True)
-    mean_std = torch.mean(std, dim=1, keepdim=True)
-
-    if False:
-        i = 3
-        # plot diff vs std
-        plt.close()
-        plt.scatter(std[i, :].detach().cpu().numpy(), diff[i, :].detach().cpu().numpy()*1000)
-        plt.savefig("std_vs_loss.png")
-
-    # Pearson correlation
-    numerator = torch.sum((diff - mean_loss) * (std - mean_std), dim=1)
-    denominator_1 = torch.sqrt(torch.sum((diff - mean_loss) ** 2, dim=1))
-    denominator_2 = torch.sqrt(torch.sum((std - mean_std) ** 2, dim=1))
-    denominator = denominator_1 * denominator_2
-    correlation = numerator / denominator
-    return correlation
+ 
