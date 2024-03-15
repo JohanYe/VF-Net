@@ -26,7 +26,9 @@ Install metrics by
 bash ./install.sh
 ```
 
-Code was tested on Ubuntu 22.04 using CUDA 11.8. If anything goes wrong during installation, it can be helpful to delete .cache/torch_extentions folder for a clean build
+Code was tested on Ubuntu 22.04 using CUDA 11.8. 
+
+If anything goes wrong during installation, it can be helpful to delete .cache/torch_extentions folder for a clean build
 
 
 ## Data
