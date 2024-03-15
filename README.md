@@ -6,7 +6,8 @@
 
 ## Requirements:
 Code was run and tested on
-```python=3.9
+```
+python=3.9
 pytorch=1.9.1
 h5py=3.10
 nflows=0.14
@@ -25,7 +26,7 @@ Install metrics by
 bash ./install.sh
 ```
 
-Code was tested on Ubuntu 22.04 using CUDA 11.8
+Code was tested on Ubuntu 22.04 using CUDA 11.8. If anything goes wrong during installation, it can be helpful to delete .cache/torch_extentions folder for a clean build
 
 
 ## Data
