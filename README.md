@@ -19,8 +19,7 @@ gitpython=3.1
 tensorboard=2.16
 setuptools==59.5.0
 ```
-
-Install metrics by
+Metrics are an updated version of [SetVAE's metrics](https://github.com/jw9730/setvae). Install them:
 
 ```
 bash ./install.sh
