@@ -59,7 +59,6 @@ if __name__ == "__main__":
     np.random.seed(42)
     # settings:
     utils.add_standard_args_to_parser(parser)
-    # transformer.ReconstructionNet.add_options(parser)  # hopefully temporary
     args = parser.parse_args()
     device = "cpu" if args.cpu_only else torch.device("cuda" if torch.cuda.is_available() else "cpu")
     data_loaders = None
@@ -67,9 +66,6 @@ if __name__ == "__main__":
     # data stuff
     if args.dataset.lower() in ['modelnet40', 'shapenetcorev2']:
         train_set, val_set, data_loaders = dataloader.build(args)
-        # train_set = dataloader.Baseline_Dataset(root="/train/", split="train", load_name=args.shapenet_single_class, dataset_name=args.dataset)  # DATASET CLASS
-        # test_split = "val" if args.dataset.lower() == 'shapenetcorev2' else "test"
-        # test_set = dataloader.Baseline_Dataset(root="/train/", split=test_split, load_name=args.shapenet_single_class, dataset_name=args.dataset)  # DATASET CLASS
         collate_fn = None
     elif args.dataset.lower() == "teeth":
         unn_list = args.unn.split(",") if args.unn != "all" else "all"

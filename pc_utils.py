@@ -299,20 +299,11 @@ def sample_facets(idx, point_cloud, facet_areas, k, ply_load):
 
 
 class ChamferLoss(nn.Module):
-    def __init__(self, args):
+    def __init__(self):
         super(ChamferLoss, self).__init__()
         self.use_cuda = torch.cuda.is_available()
         self.backprop_num = 0
 
-        self.loss_anneal = args.sn_anneal
-        self.max_epochs = args.num_epochs
-
-    def linear_decrease(self):
-        return 1 - 0.99 * (self.current_epoch / self.max_epochs)
-
-    def delayed_anneal(self):
-        return min(1, max(0.0, 1 * (self.current_epoch - 350) / 150))
-
     def batch_pairwise_dist_new(self, x, y):
         xx = x.pow(2).sum(dim=2)
         yy = y.pow(2).sum(dim=2)
@@ -331,57 +322,9 @@ class ChamferLoss(nn.Module):
         loss_1 = torch.mean(torch.clamp(mins, min=1e-10))
         mins, _ = torch.min(P, 2)  # from gts to pred
         loss_2 = torch.mean(torch.clamp(mins, min=1e-10))
-
-        if isinstance(surface_normals_tuple, tuple):
-            ground_truth_normals, reconstructed_surface_normals = surface_normals_tuple
-            bs, n_points, xyz = reconstructed_surface_normals.shape
-            min_idx = min_idx.cpu().flatten()
-            batch_idx = torch.repeat_interleave(torch.arange(bs), n_points).long()
-            ground_truth_closest = ground_truth_normals[batch_idx, min_idx].view(bs, -1, xyz)
-
-            #  https://discuss.pytorch.org/t/efficient-way-to-calculate-angles-of-normals-between-to-tensors/22471
-            a = reconstructed_surface_normals.view(-1, xyz)
-            b = ground_truth_closest.view(-1, xyz)
-            inner_product = (a * b).sum(dim=1)
-            angle = torch.acos(torch.clamp(inner_product, max=0.999, min=-0.999)).pow(2)
-            beta = self.delayed_anneal()
-
-            return {"total_loss": (loss_1 + loss_2) * 1000,
-                    "chamfer": (loss_1 + loss_2) * 1000,
-                    "surface_normal_angle": angle.mean(),
-                    "loss_anneal_value": beta}
-
-        beta = self.delayed_anneal()
-        return {"total_loss": (loss_1 + loss_2) * 1000,
-                "chamfer": (loss_1 + loss_2) * 1000,
-                "kl_coeff": beta}
-
-
-class ChamferLossSimple(nn.Module):
-    def __init__(self):
-        super(ChamferLossSimple, self).__init__()
-        self.use_cuda = torch.cuda.is_available()
-        self.backprop_num = 0
-
-    def batch_pairwise_dist_new(self, x, y):
-        xx = x.pow(2).sum(dim=2)
-        yy = y.pow(2).sum(dim=2)
-        zz = torch.bmm(x, y.transpose(2, 1))
-        # just repeating of x_1^2, x_2^2 ... x_n^2
-        rx = xx.unsqueeze(1).expand_as(zz.transpose(2, 1))
-        ry = yy.unsqueeze(1).expand_as(zz)
-        P = (rx.transpose(2, 1) + ry - 2 * zz)  # x^2 + y^2 - 2xy
-        return P
-
-    def forward(self, ground_truth, reconstruction, surface_normals_tuple=None):
-
-        #if surface_normals_tuple is None
-        P = self.batch_pairwise_dist_new(ground_truth, reconstruction)
-        mins, min_idx = torch.min(P, 1)  # from pred to gts
-        loss_1 = torch.mean(torch.clamp(mins, min=1e-10))
-        mins, _ = torch.min(P, 2)  # from gts to pred
-        loss_2 = torch.mean(torch.clamp(mins, min=1e-10))
-        return (loss_1 + loss_2) * 100
+        return {"total_loss":(loss_1 + loss_2) * 1000,
+                "chamfer": (loss_1 + loss_2) * 1000,}
+    
 
 
 def save_pointcloud(point_cloud, save_path, point_normals=None):

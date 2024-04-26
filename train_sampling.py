@@ -412,7 +412,7 @@ def train_point_encoding_predictor(args):
         model = OneFold().to(device)   
     else:
         model = TwoFold().to(device)
-    chamf = pc_utils.ChamferLossSimple()
+    chamf = pc_utils.ChamferLoss()
     
     # optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
@@ -507,7 +507,7 @@ def train_point_encoding_predictor(args):
 def train_point_encoding_flow(args):
     # loggging dir
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    chamf = pc_utils.ChamferLossSimple()
+    chamf = pc_utils.ChamferLoss()
 
     # Flow stuff
     num_layers, t = 5 , []
