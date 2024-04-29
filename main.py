@@ -13,22 +13,18 @@ from train import train
 
 parser = argparse.ArgumentParser(description='Training loop boiler plate')
 parser.add_argument('--dataset', required=False, default="teeth", help="Data set, pick from ['teeth', 'modelnet40', 'shapenetcore']")
-parser.add_argument('--x_train', required=False, help='Path to X_train folder', dest="x_train")
-parser.add_argument('--x_val', required=False, help='Path to X_est folder', dest="x_test")
+parser.add_argument('--x_train', required=False, help='Path to X_train folder')
+parser.add_argument('--x_val', required=False, help='Path to X_est folder')
 parser.add_argument("--point_normals", action="store_true", default=False, help="If point normals should be included in data")
 parser.add_argument("--std_training", action="store_true", default=False, help="trainig std only")
 parser.add_argument("--unn", required=False, default="3", help="unns to include, separate with comma and no space")
-parser.add_argument("--shapenet_single_class", action="store_true", default=False, help="If point normals should be included in data")
 parser.add_argument('--num_workers', required=False, type=int, default=16)
-parser.add_argument("--sn_anneal", action="store_true", default=False, help="If surface normal loss should be annealed")
 parser.add_argument("--cpu_only", action="store_true", default=False, help="force into cpu mode, used for debugging")
 parser.add_argument("--model", required=False, type=str, default="vae", help="model choice")
 parser.add_argument('--resume_from', required=False, default="", help='Path to state dict to continue training from')
 parser.add_argument("--encoder", required=False, type=str, default="foldnet", help="Foldingnet encoder")
 parser.add_argument("--decoder", required=False, type=str, default="stochman", help="stochman decoder")
 parser.add_argument("--point_encoding", action="store_true", default=False, help="If model should map to grid or use entire grid")
-parser.add_argument('--iwae_k', required=False, type=int, default=1)
-parser.add_argument('--static_kl', required=False, type=float, default=0)
 parser.add_argument('--scaling_std', action="store_true", required=False, default=False)
 parser.add_argument("--exp_name", required=False, type=str, default=None,
                     help="Name for experiment, default being datetime")
@@ -69,17 +65,17 @@ if __name__ == "__main__":
         collate_fn = None
     elif args.dataset.lower() == "teeth":
         unn_list = args.unn.split(",") if args.unn != "all" else "all"
-        teeth_std = 9.8186 if unn_list == ['3'] else 11.75121  # 12.425647 is for all unn 3
+        teeth_std = 9.8186 if unn_list == ['3'] else 11.75121  
         args.teeth_std = teeth_std
         train_set = dataloader.Teeth_Dataset(unn=unn_list,
                                              folder_path=args.x_train,
                                              is_train=True,
-                                             global_pc_std=teeth_std, #2*2.185 # global std(norm(pc)) from fc_train_unn_3
+                                             global_pc_std=teeth_std, 
                                              args=args)
         test_set = dataloader.Teeth_Dataset(unn=unn_list,
-                                            folder_path=args.x_test,
+                                            folder_path=args.x_val,
                                             is_train=False,
-                                            global_pc_std=teeth_std, # 2.185, # global std(norm(pc)) from fc_train_unn_3
+                                            global_pc_std=teeth_std,
                                             args=args)
     elif args.dataset.lower() == "shapenet15":
         train_set, test_set, data_loaders = dataloader.build(args)
@@ -95,22 +91,20 @@ if __name__ == "__main__":
 
     #  model loading
     epoch = None
-    if len(args.resume_from) > 0:  # to lazy to make model and optimizer load together
+    if len(args.resume_from) > 0: 
         model = utils.load_pretrained_model(model, load_path=args.resume_from)
         epoch, optimizer_state_dict, best_loss = utils.load_previous_training_params(args.resume_from, optimizer)
-        optimizer = optim.Adamax(model.parameters(), args.lr, [args.beta1, args.beta2]) # tmp to be deleted
+        optimizer = optim.Adamax(model.parameters(), args.lr, [args.beta1, args.beta2]) 
 
         if args.std_training:
             model.decoder.init_std(device)
-            # model = utils.load_pretrained_model(model, load_path=args.resume_from)
             optimizer = optim.Adam(model.decoder.std.parameters(), args.lr, [args.beta1, args.beta2])
             lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=args.patience, verbose=True,
                                                                       factor=0.85)
             epoch = 0
         else:
-            optimizer.load_state_dict(optimizer_state_dict)  # stupid in place operation
+            optimizer.load_state_dict(optimizer_state_dict)  # load optimizer state dict
 
-    # test_batch_size = 2 if args.dataset.lower() == "teeth" else args.batch_size
     if data_loaders is None:
         data_loaders = {
             "Train": DataLoader(train_set, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers,
