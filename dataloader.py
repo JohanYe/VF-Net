@@ -59,26 +59,10 @@ class Teeth_Dataset(Dataset):
         self.k = k
         self.point_normals = args.point_normals
         self.global_pc_std = global_pc_std
-        # self.all_points_mean = torch.Tensor([-0.0266, 0.3486, -0.0049]).unsqueeze(1)
-        # self.all_points_mean = torch.Tensor([-0.05251455, 0.48561925, -0.05256953]).unsqueeze(1)
 
-        if unn == "all":
-            self.data = all_unn(folder_path)
-        elif unn == ["3"]:
+        if unn == ["3"]:
             self.data = published_data(folder_path)
-        else:
-            self.data = few_unns(folder_path, unn_list=unn)
 
-        if only_worn_teeth:
-            self.data = [d for d in self.data if not d["Hole"] and
-                                                 not d["Filling"] and
-                                                 not d["Restoration"] and
-                                                 not d["Severe problems"] and
-                                                 not d["Spit bubble"] and
-                                                 not d["Bracket"]]
-
-        # if args.model.lower() == "vae":
-        # if self.is_train:
         self.data = self.cull_data(self.data, self.k)
 
         if self.global_pc_std is None:

@@ -114,22 +114,3 @@ def load_pretrained_model(model, load_path=None):
     return model
 
 
-def dir_cleaner(folder, file_format_to_delete):
-    """
-    If directory exists, delete all files with input format.
-    else create dir
-    :return:
-    """
-    if os.path.isdir(folder):
-        for filename in os.listdir(folder):
-            file_path = os.path.join(folder, filename)
-            if file_path[-len(file_format_to_delete):] == file_format_to_delete:
-                try:
-                    if os.path.isfile(file_path) or os.path.islink(file_path):
-                        os.unlink(file_path)
-                    elif os.path.isdir(file_path):
-                        shutil.rmtree(file_path)
-                except Exception as e:
-                    print('Failed to delete %s. Reason: %s' % (file_path, e))
-    else:
-        os.mkdir(os.path.join(folder))
