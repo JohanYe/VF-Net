@@ -95,10 +95,10 @@ class Teeth_Dataset(Dataset):
                 np.array((ply_load.elements[0]['x'], ply_load.elements[0]['y'], ply_load.elements[0]['z'])))
             
             # check if still large enough after edge removal
-            with open(data_dict['ply_file'][:-15] + "extraInfo.dat", "rb") as f:
-                extra_info = np.fromfile(f, np.double)
-            extra_info = extra_info.reshape(-1, point_cloud.shape[-1]).T  # (N_points, 2) curvature and dist from border
-            distance_from_border = extra_info[:, 1]
+            with open(data_dict['ply_file'][:-15] + "curvature_edgedistance.dat", "rb") as f:
+                curvature_and_edgedistance = np.fromfile(f, np.double)
+            curvature_and_edgedistance = curvature_and_edgedistance.reshape(-1, point_cloud.shape[-1]).T  # (N_points, 2) curvature and dist from border
+            distance_from_border = curvature_and_edgedistance[:, 1]
             delete_indices = np.where(distance_from_border < 0.5)[0]  # this value could be investigated furter
             if (point_cloud.shape[1] - len(delete_indices)) > min_pc_size:
                 data_dict['data'] = point_cloud
@@ -145,11 +145,11 @@ class Teeth_Dataset(Dataset):
         point_cloud = torch.from_numpy(np.array((ply_load.elements[0]['x'], ply_load.elements[0]['y'], ply_load.elements[0]['z'])))
         point_cloud = self.pc_normalize(point_cloud).transpose(0, 1)
 
-        with open(ply_path[:-15] + "extraInfo.dat", "rb") as f:
-            extra_info = np.fromfile(f, np.double)
+        with open(ply_path[:-15] + "curvature_edgedistance.dat", "rb") as f:
+            curvature_and_edgedistance = np.fromfile(f, np.double)
         # curvature = torch.from_numpy(curvature[indices])
-        extra_info = extra_info.reshape(-1, point_cloud.shape[0]).T  # (N_points, 2) curvature and dist from border
-        distance_from_border = extra_info[:, 1]
+        curvature_and_edgedistance = curvature_and_edgedistance.reshape(-1, point_cloud.shape[0]).T  # (N_points, 2) curvature and dist from border
+        distance_from_border = curvature_and_edgedistance[:, 1]
 
         delete_indices = np.where(distance_from_border < 0.5)[0]  # this value could be investigated furter
         delete_points_near_border = np.delete(np.arange(point_cloud.shape[0]), delete_indices)

@@ -77,8 +77,6 @@ if __name__ == "__main__":
                                             is_train=False,
                                             global_pc_std=teeth_std,
                                             args=args)
-    elif args.dataset.lower() == "shapenet15":
-        train_set, test_set, data_loaders = dataloader.build(args)
     else:
         raise ValueError(f"Dataset not recognized: {args.dataset}. Available options: ['teeth', 'modelnet40', 'shapenetcorev2']")
 
