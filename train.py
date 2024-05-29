@@ -50,7 +50,7 @@ def tensorboard_save(writer, phase, epoch, epoch_loss_dict, std):
             loss_stack = torch.Tensor(v)
             writer.add_scalar(f"foldingnet/{phase}_epoch", loss_stack.sum() / epoch_loss_dict['num_samples'], epoch)
             # writer.add_histogram(f"foldingnet/{phase}_hist_epoch", loss_stack.detach().cpu().numpy(), epoch)  # dead dunno why
-        elif k in ["num_samples", "iwae_k"]:
+        elif k in ["num_samples"]:
             continue
         elif "chamfer" in k:
             v = torch.Tensor(v).mean()
@@ -100,8 +100,7 @@ def train(data_loaders, model, optimizer, scheduler, device, args, preloaded_epo
 
                     # TODO: Try gradient clipping
                     output_dict = model(pc_X, jacobian=(args.decoder.lower() == "stochman" and args.point_normals))
-                    loss_dict = model.get_loss(epoch, pc_X, output_dict,
-                                               iwae=phase == 'Train' if args.iwae_k != 1 else False)
+                    loss_dict = model.get_loss(epoch, pc_X, output_dict)
                     if phase == "Train":
                         loss_dict["total_loss"].backward()
                         model.loss.backprop_num += 1

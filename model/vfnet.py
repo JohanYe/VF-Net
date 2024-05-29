@@ -17,13 +17,8 @@ class Variational_autoencoder(nn.Module):
         self.loss = ChamferLoss()
         self.max_epochs = args.num_epochs
         self.feat_dims = args.feat_dims
-        self.static_kl = args.static_kl
-        self.scaling_std = args.scaling_std
         self.prior = None
-        self.backprop_step = 0
-        self.iwae_k = args.iwae_k
         self.warm_up_epochs = int(args.num_epochs / 4)
-        self.surface_normal_loss_direction = None
         self.global_std = global_std
 
     def reparameterize(self, feature):
@@ -59,7 +54,7 @@ class Variational_autoencoder(nn.Module):
     def get_parameter(self):
         return list(self.encoder.parameters()) + list(self.decoder.parameters())
 
-    def get_loss(self, epoch, ground_truth, model_output, iwae=False, std=1):
+    def get_loss(self, epoch, ground_truth, model_output, std=1):
         reconstruction = model_output["reconstruction"]
         bs, n_dim, n_points = ground_truth.shape
         if reconstruction.shape[-1] == 3:  # OBS: THIS MAY GO WRONG CONVERGENCE IF DONE WRONG
@@ -84,9 +79,6 @@ class Variational_autoencoder(nn.Module):
         else:
             self.std = (model_output["std"].repeat(1,1,3).mul(0.5).exp() * 0.0005)  + 1e-10
 
-        if self.iwae_k != 1 and iwae:
-            self.iwae_loss(ground_truth)
-
         if "std" not in model_output.keys():
             p_xGz = td.studentT.StudentT(df=3, loc=reconstruction, scale=self.std)
         else:
@@ -94,7 +86,7 @@ class Variational_autoencoder(nn.Module):
 
         kl = td.kl_divergence(self.q_zGx, self.prior).sum(-1).sum(-1)
         recon_error = p_xGz.log_prob(ground_truth_vertex).sum(-1).sum(-1)
-        kl_coeff = min(1., epoch / self.warm_up_epochs) if self.static_kl == 0 else self.static_kl
+        kl_coeff = min(1., epoch / self.warm_up_epochs)
         ELBO = recon_error - kl * kl_coeff
 
         loss_1 = self.loss(ground_truth_vertex*std, reconstruction*std)

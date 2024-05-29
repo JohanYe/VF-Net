@@ -25,7 +25,6 @@ parser.add_argument('--resume_from', required=False, default="", help='Path to s
 parser.add_argument("--encoder", required=False, type=str, default="foldnet", help="Foldingnet encoder")
 parser.add_argument("--decoder", required=False, type=str, default="stochman", help="stochman decoder")
 parser.add_argument("--point_encoding", action="store_true", default=False, help="If model should map to grid or use entire grid")
-parser.add_argument('--scaling_std', action="store_true", required=False, default=False)
 parser.add_argument("--exp_name", required=False, type=str, default=None,
                     help="Name for experiment, default being datetime")
 parser.add_argument("--commit_name", required=False, type=str, default=None)

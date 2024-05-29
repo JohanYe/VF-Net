@@ -30,8 +30,6 @@ parser.add_argument('--x_train', required=False, help='Path to X_train folder', 
 parser.add_argument('--x_val', required=False, help='Path to X_val folder', dest="x_val")
 parser.add_argument('--x_test', required=False, help='Path to X_test folder', dest="x_test")
 parser.add_argument('--model_path', required=False, default="", help='Path to state dict to continue training from')
-parser.add_argument('--static_kl', required=False, type=float, default=1)
-parser.add_argument('--scaling_std', action="store_true", required=False, default=False)
 parser.add_argument('--flow_num_epochs', required=False, type=int, default=150)
 parser.add_argument('--num_workers', required=False, type=int, default=0)
 parser.add_argument('--pe_num_epochs', required=False, type=int, default=300)
