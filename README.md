@@ -19,7 +19,7 @@ gitpython=3.1
 tensorboard=2.16
 setuptools==59.5.0
 ```
-Metrics are an updated version of [SetVAE's metrics](https://github.com/jw9730/setvae) for python 3.9. Install them via:
+Metrics are an updated version of [SetVAE's metrics](https://github.com/jw9730/setvae) for python 3.9 (for other versions, simply edit line 77-78 in the MakeFile). Install them via:
 
 ```
 bash ./install.sh
@@ -44,7 +44,7 @@ python ./main.py --x_train path_to_train_data --x_val path_to_val_data
 
 Flow prior training can be run using:
 ```
-python ./main.py --x_train path_to_train_data --x_val path_to_val_data  --x_test path_to_test_data --test_name insert_test_name --seed insert_seed_num
+python ./main.py --x_train path_to_train_data --x_val path_to_val_data  --x_test path_to_test_data --model_path path_to_vae_ckpt --test_name insert_test_name --seed insert_seed_num
 ```
 
 ## Citation
