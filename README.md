@@ -44,7 +44,7 @@ python ./main.py --x_train path_to_train_data --x_val path_to_val_data
 
 Flow prior training can be run using:
 ```
-python ./main.py --x_train path_to_train_data --x_val path_to_val_data  --x_test path_to_test_data --model_path path_to_vae_ckpt --test_name insert_test_name --seed insert_seed_num
+python ./train_sampling.py --x_train path_to_train_data --x_val path_to_val_data  --x_test path_to_test_data --model_path path_to_vae_ckpt --test_name insert_test_name --seed insert_seed_num
 ```
 
 ## Citation
